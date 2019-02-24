@@ -1,9 +1,21 @@
 import sys
 import pandas as pd
 
+def get_encodings(filepath):
+    from encodings.aliases import aliases
+
+    alias_values = set(aliases.values())
+
+    for encoding in set(aliases.values()):
+        try:
+            df=pd.read_csv(filepath, encoding=encoding)
+            print('successful', encoding)
+        except:
+            pass
+
 def load_data(messages_filepath, categories_filepath):
-    messages = pd.read_csv("messages.csv")
-    categories = pd.read_csv("categories.csv")
+    messages = pd.read_csv(messages_filepath)
+    categories = pd.read_csv(categories_filepath)
     df = messages.merge(categories, left_on='id', right_on='id')
 
     categories = df['categories'].str.split(';', expand=True)
@@ -25,8 +37,8 @@ def clean_data(df):
 
 def save_data(df, database_filename):
     from sqlalchemy import create_engine
-    engine = create_engine('sqlite:///InsertDatabaseName.db')
-    df.to_sql('InsertTableName', engine, index=False)
+    engine = create_engine('sqlite:///'+database_filename)
+    df.to_sql('messages', engine, index=False, if_exists='replace')
 
 
 def main():
