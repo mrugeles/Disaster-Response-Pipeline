@@ -3,7 +3,7 @@ import nltk
 import re
 
 import pandas as pd
-
+import numpy as np
 from sqlalchemy import create_engine
 
 from nltk.tokenize import word_tokenize
@@ -14,8 +14,8 @@ from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.stem import PorterStemmer
 
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
-from sklearn.metrics import accuracy_score, precision_score, recall_score
-from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import MultinomialNB
@@ -28,14 +28,11 @@ nltk.download('wordnet')
 def load_data(database_filepath):
     engine = create_engine('sqlite:///'+database_filepath)
     df = pd.read_sql('messages', engine)
-    df.head()
     X = df[['message']].values.flatten()
     y = df.drop(['id', 'message', 'original'], axis = 1)
     category_names = list(y.columns.values)
-    y = pd.get_dummies(y)
-    y = y.values
-   
-    
+    #y = y.values
+
     return X, y, category_names
 
 
@@ -56,21 +53,30 @@ def build_model():
         ('tfidf', TfidfTransformer()),
         ('clf', MultiOutputClassifier(forest))
     ])
+    parameters = { 
+        'clf__estimator__n_estimators': [50, 100, 150, 200],
+        'clf__estimator__max_features': ['auto', 'sqrt', 'log2'],
+        'clf__estimator__max_depth' : [4,5,6,7,8],
+        'clf__estimator__criterion' :['gini', 'entropy']
+    }
 
-    return pipeline
+    cv = GridSearchCV(pipeline, param_grid=parameters)
+    
+    return cv
 
 
 def evaluate_model(model, X_test, Y_test, category_names):
     y_pred = model.predict(X_test)
-    accuracy = accuracy_score(Y_test, y_pred)
-    precision = precision_score(Y_test, y_pred, average = 'micro')
-    recall = recall_score(Y_test, y_pred, average = 'micro')
-    print("accuracy: %f"%accuracy)
-    print("precision: %f"%precision)
-    print("recall: %f"%recall)
+    y_pred = pd.DataFrame(data = y_pred, columns = category_names)
+    for category in category_names:
+        print("Scoring %s"%(category))
+        print(classification_report(Y_test[category].values, y_pred[category].astype(int)))
 
 
 def save_model(model, model_filepath):
+    import pickle
+    # save the classifier
+    pickle.dump(model, open(model_filepath, 'wb'))
     return True
 
 
@@ -79,8 +85,9 @@ def main():
         database_filepath, model_filepath = sys.argv[1:]
         print('Loading data...\n    DATABASE: {}'.format(database_filepath))
         X, Y, category_names = load_data(database_filepath)
+   
         X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
-        
+
         print('Building model...')
         model = build_model()
         

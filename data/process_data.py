@@ -22,13 +22,16 @@ def load_data(messages_filepath, categories_filepath):
     row = categories.iloc[0]
     category_colnames = list(row.apply(lambda category_value: category_value.split('-')[0]))
     categories.columns = category_colnames
-    for column in categories:
-        categories[column] = categories[column].astype(str).str.split('-')[0][1]
-        categories[column] = categories[column].astype(int)
 
+    for column in categories:
+        categories[column] = categories[column].apply(lambda text: text.split('-')[1])
+        categories[column] = categories[column].astype(int)
     df = df.drop(['categories'], axis = 1)
     df = pd.concat([df, categories], axis = 1)
-
+    
+    genres = pd.get_dummies(df[['genre']])
+    df = df.drop(['genre'], axis = 1)
+    df = pd.concat([df, genres], axis = 1)
     return df
 
 def clean_data(df):
