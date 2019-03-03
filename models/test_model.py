@@ -29,8 +29,8 @@ from sklearn.externals import joblib
 
 
 def tokenize(text):
-    text = text.lower() 
-    text = re.sub(r"[^a-zA-Z0-9]", " ", text) 
+    text = text.lower()
+    text = re.sub(r"[^a-zA-Z0-9]", " ", text)
     words = word_tokenize(text)
     words = [w for w in words if w not in stopwords.words("english")]
     words = [WordNetLemmatizer().lemmatize(w, pos='v') for w in words]
@@ -39,8 +39,10 @@ def tokenize(text):
 
 def main():
     model = joblib.load('models/classifier.pkl')
-    X = np.array(['Is the Hurricane over or is it not over', 'We need medical personel', 'There is people destroying things in the street'])
-    y_pred = model.predict(X)
+    print(type(model))
+    X = np.array(['We need medical attention'])
+    y_pred = model.predict(X)[0]
+    print(y_pred)
     pd.set_option('display.max_columns', 500)
     y_pred = pd.DataFrame(data = y_pred, columns = ['related', 'request', 'offer',
        'aid_related', 'medical_help', 'medical_products',

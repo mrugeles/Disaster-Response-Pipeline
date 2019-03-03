@@ -28,7 +28,7 @@ def load_data(messages_filepath, categories_filepath):
         categories[column] = categories[column].astype(int)
     df = df.drop(['categories'], axis = 1)
     df = pd.concat([df, categories], axis = 1)
-    
+
     genres = pd.get_dummies(df[['genre']])
     df = df.drop(['genre'], axis = 1)
     df = pd.concat([df, genres], axis = 1)

@@ -93,13 +93,13 @@ def index():
 @app.route('/go')
 def go():
     # save user input in query
-    query = request.args.get('query')
+    print(type(model))
+    query = request.args.get('query', '')
     # use model to predict classification for query
-    print("query:")
-    print(query)
-    classification_labels = model.predict([query])
+    print("query: %s"%query)
+    classification_labels = model.predict(['There is no water'])
     print(classification_labels[0])
-    print( model.predict([query]))
+    print( model.predict([query])[0])
     classification_results = dict(zip(columns, classification_labels[0]))
 
     # This will render the go.html Please see that file.
@@ -109,7 +109,11 @@ def go():
         classification_result=classification_results
     )
 
-
+@app.route('/meh')
+def meh():
+    return render_template(
+        'meh.html'
+    )
 def main():
     app.run(host='0.0.0.0', port=3001, debug=True)
 
