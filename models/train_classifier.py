@@ -90,10 +90,10 @@ def build_model():
     ])
 
     parameters = {
-        #'clf__estimator__n_estimators': [50, 100],
-        #'clf__estimator__max_features': ['auto', 'sqrt', 'log2'],
-        #'clf__estimator__max_depth' : [3, 5],
-        #'clf__estimator__criterion' :['gini', 'entropy']
+        'clf__estimator__n_estimators': [50, 100],
+        'clf__estimator__max_features': ['auto', 'sqrt', 'log2'],
+        'clf__estimator__max_depth' : [3, 5],
+        'clf__estimator__criterion' :['gini', 'entropy']
     }
 
     scorer = make_scorer(f1_score)
