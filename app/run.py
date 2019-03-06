@@ -16,20 +16,10 @@ from sqlalchemy import create_engine
 
 app = Flask(__name__)
 
-def tokenize(text):
-    tokens = word_tokenize(text)
-    lemmatizer = WordNetLemmatizer()
-
-    clean_tokens = []
-    for tok in tokens:
-        clean_tok = lemmatizer.lemmatize(tok).lower().strip()
-        clean_tokens.append(clean_tok)
-
-    return clean_tokens
-
 # load model
 model = joblib.load("../models/classifier.pkl")
 
+# Dataset categories
 columns = ['related', 'request', 'offer',
    'aid_related', 'medical_help', 'medical_products',
    'search_and_rescue', 'security', 'military', 'child_alone', 'water',
@@ -39,6 +29,8 @@ columns = ['related', 'request', 'offer',
    'shops', 'aid_centers', 'other_infrastructure', 'weather_related',
    'floods', 'storm', 'fire', 'earthquake', 'cold', 'other_weather',
    'direct_report', 'genre_direct', 'genre_news', 'genre_social']
+
+# CSS class icons for categories
 category_icons = {
    'related':'exclamation-triangle', 'request':'hand-point-up', 'offer':'hand-holding-heart',
    'aid_related':'first-aid', 'medical_help':'briefcase-medical', 'medical_products':'prescription-bottle-alt',
@@ -53,6 +45,7 @@ category_icons = {
    'direct_report':'table', 'genre_direct':'mobile', 'genre_news':'newspaper', 'genre_social':'twitter'
 }
 
+# CSS class for category colors
 category_colors = {
    'related':'primary', 'request':'info', 'offer':'success',
    'aid_related':'danger', 'medical_help':'warning', 'medical_products':'info',
@@ -66,6 +59,8 @@ category_colors = {
    'cold':'danger', 'other_weather':'warning',
    'direct_report':'info', 'genre_direct':'primary', 'genre_news':'info', 'genre_social':'success'
 }
+
+# Set random colors for category plots
 import random as random
 backgroundColors = []
 borderColors = []
@@ -80,6 +75,9 @@ for category in columns:
 @app.route('/')
 @app.route('/index')
 def index():
+    """
+    Results are shown in a table and a plot to show the predicted categories.
+    """
     query = request.args.get('query', '')
     classification_results = None
     categories = None
@@ -88,8 +86,6 @@ def index():
     if(query != ''):
         # use model to predict classification for query
         classification_labels = model.predict([query])[0]
-        print("query: %s"%query)
-        print("classification_labels: %s"%classification_labels)
         classification_results = dict(zip(columns, classification_labels))
 
         columns_df = ['message']
@@ -112,6 +108,17 @@ def index():
     )
 
 def store_message(message, messages_df):
+    """Every query is stored in a table with the predicted categories. This can eventually allow users to
+    manually make correction to classifications that can be used to expand the training set.
+
+    Parameters
+    ----------
+    message: string
+        Message to classify.
+
+    messages_df: DataFrame
+        Dataframe with the predicted categories for the message.
+    """
     engine = create_engine('sqlite:///ReceivedMessages.db')
     exists = 0
     try:
@@ -124,6 +131,23 @@ def store_message(message, messages_df):
         messages_df.to_sql('messages', engine, index=False, if_exists='append')
 
 def get_plot_params(messages, filter = False):
+    """ Returns parameter values for build a chartjs plot
+
+        Parameters
+        ----------
+        messages: DataFrame
+            DataFrame with messages and their predicted categories.
+
+        filter: bool
+            If True, only returns categories with value 1.
+
+        Returns
+        -------
+        categories: array
+            Ids for predicted categories.
+        categories_totals: array
+            Total of records per categories.
+    """
     categories_df = messages.drop(['message'], axis = 1)
     totals = categories_df.sum()
 
@@ -135,6 +159,21 @@ def get_plot_params(messages, filter = False):
     return categories, categories_totals
 
 def get_top_categories(messages, top):
+    """ Return the most required categories
+
+    Parameters
+    ----------
+    messages: DataFrame
+        DataFrame with messages and their predicted categories.
+
+    top: int
+        Number of categories to retrieve.
+
+    Returns
+    -------
+    categories_totals_df: DataFrame
+        Dataframe with the most required categories.
+    """
     categories_df = messages.drop(['message'], axis = 1)
     totals = categories_df.sum()
 
@@ -143,6 +182,9 @@ def get_top_categories(messages, top):
 
 @app.route('/dashboard')
 def dashboard():
+    """
+    This page provides basic plotting information from the messages received and their classifications.
+    """
     engine = create_engine('sqlite:///ReceivedMessages.db')
     categories_top_df = pd.DataFrame()
     categories_totals_df = pd.DataFrame()
@@ -152,7 +194,6 @@ def dashboard():
     try:
         received_messages = pd.read_sql_table('messages', engine)
         categories, categories_totals = get_plot_params(received_messages)
-        print("+++")
         categories_top_df = get_top_categories(received_messages, 4)
 
     except:

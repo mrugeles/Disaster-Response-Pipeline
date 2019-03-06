@@ -2,6 +2,13 @@ import sys
 import pandas as pd
 
 def get_encodings(filepath):
+    """ Prints encodings related with a given file
+
+    Parameters
+    ----------
+    filepath: string
+        Path to the file to analyse.
+    """
     from encodings.aliases import aliases
 
     alias_values = set(aliases.values())
@@ -14,6 +21,21 @@ def get_encodings(filepath):
             pass
 
 def load_data(messages_filepath, categories_filepath):
+    """Creates the dataframe for the pipeline
+
+    Parameters
+    ----------
+    messages_filepath: string
+        Path to the messages's csv file.
+
+    categories_filepath: string
+        Path to the categories's csv file.
+
+    Returns
+    -------
+    df: DataFrame
+        Dataframe with messages and it's categories.
+    """
     messages = pd.read_csv(messages_filepath)
     categories = pd.read_csv(categories_filepath)
     df = messages.merge(categories, left_on='id', right_on='id')
@@ -35,10 +57,33 @@ def load_data(messages_filepath, categories_filepath):
     return df
 
 def clean_data(df):
+    """This method runs aditional transformations for cleaning the dataset.
+
+    Parameters
+    ----------
+    df: DataFrame
+        DataFrame with messages to be cleaned
+
+    Returns
+    -------
+        df: DataFrame
+            Cleaned DataFrame
+    """
     return df.drop_duplicates()
 
 
 def save_data(df, database_filename):
+    """Stores the processed message's dataframe
+
+    Parameters
+    ----------
+    df: DataFrame
+        DataFrame to store.
+
+    database_filename: string
+        Name of the database to store the data.
+
+    """
     from sqlalchemy import create_engine
     engine = create_engine('sqlite:///'+database_filename)
     df.to_sql('messages', engine, index=False, if_exists='replace')

@@ -27,18 +27,43 @@ nltk.download('stopwords')
 nltk.download('wordnet')
 
 def load_data(database_filepath):
+    """ Creates the dataset from a database.
+
+    Parameters
+    ----------
+    database_filepath: string
+        Path to the database for importing the data.
+
+    X: DataFrame
+        Dataset features.
+    y: DataFrame
+        Dataset targets (Categories).
+
+    category_names: list
+        List of category names.
+    """
     print('sqlite:///'+database_filepath)
     engine = create_engine('sqlite:///'+database_filepath)
     df = pd.read_sql('messages', engine)
     X = df[['message']].values.flatten()
     y = df.drop(['id', 'message', 'original'], axis = 1)
     category_names = list(y.columns.values)
-    #y = y.values
 
     return X, y, category_names
 
 
 def tokenize(text):
+    """Text tokenization
+
+    Parameters
+    ----------
+    text: string
+        Text to tokenize
+
+    Returns
+    -------
+    text: Tokenized text.
+    """
     text = text.lower()
     text = re.sub(r"[^a-zA-Z0-9]", " ", text)
     words = word_tokenize(text)
@@ -49,6 +74,14 @@ def tokenize(text):
 
 
 def build_model():
+    """ Builds the pipeline and finds the best classification model with gridsearch.
+
+    Returns
+    -------
+
+    cv: GridSearchCV
+        GridSearchCV instance with the tuned model.
+    """
     forest = RandomForestClassifier()
     pipeline = Pipeline([
         ('vect', CountVectorizer(tokenizer=tokenize)),
@@ -57,7 +90,7 @@ def build_model():
     ])
 
     parameters = {
-        #'clf__estimator__n_estimators': [50, 100]
+        #'clf__estimator__n_estimators': [50, 100],
         #'clf__estimator__max_features': ['auto', 'sqrt', 'log2'],
         #'clf__estimator__max_depth' : [3, 5],
         #'clf__estimator__criterion' :['gini', 'entropy']
@@ -70,6 +103,20 @@ def build_model():
 
 
 def evaluate_model(model, X_test, Y_test, category_names):
+    """Model evaluation
+
+    Parameters
+    ----------
+
+    model: GridSearchCV
+        GridSearchCV instance with the tuned model.
+
+    X_test: Series.
+        Dataset with the test features (messages).
+
+    Y_test: Series.
+        Dataset with the test targets (categories).
+    """
     y_pred = model.predict(X_test)
     y_pred = pd.DataFrame(data = y_pred, columns = category_names)
     for category in category_names:
@@ -78,6 +125,17 @@ def evaluate_model(model, X_test, Y_test, category_names):
 
 
 def save_model(model, model_filepath):
+    """Stores model
+
+    Parameters
+    ----------
+
+    model: GridSearchCV
+        GridSearchCV instance with the tuned model.
+
+    model_filepath: string
+        Path to store the model
+    """
     import pickle
     # save the classifier
     pickle.dump(model, open(model_filepath, 'wb'))
