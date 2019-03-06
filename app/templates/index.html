@@ -77,42 +77,86 @@
       <div id="content">
 
         {% block content %}
-            <div class="jumbotron jumbotron-fluid">
-                <div class="container">
-                    <h1 class="text-center">Disaster Response Project</h1>
-                    <p class="text-center">Analyzing message data for disaster response</p>
-                    <hr />
-                    <form action="/index" method="get">
-                      <div class="form-group">
-                          <input type="text" class="form-control" name="query" placeholder="Enter a message to classify">
-                      </div>
+            <div class="container-fluid">
+              <div class="d-sm-flex align-items-center justify-content-between mb-4">
+                <h1 class="h3 mb-0 text-gray-800">Disaster Response Project</h1>
+              </div>
 
-                      <div class="container">
-                        <div class="row">
-                          <div class="col text-center">
-                          <button type="submit" class="btn btn-lg btn-success">Classify Message</button>
+              <div class="row">
+                <div class="col-xl-12 col-md-12 mb-4">
+                  <div class="card">
+                    <div class="card-header">
+                    Analyzing message data for disaster response
+                    </div>
+                    <div class="card-body">
+                      <form action="/index" method="get">
+                        <div class="form-group">
+                            <input type="text" class="form-control" name="query" placeholder="Enter a message to classify">
+                        </div>
+
+                        <div class="container">
+                          <div class="row">
+                            <div class="col text-center">
+                            <button type="submit" class="btn btn-lg btn-success">Classify Message</button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </form>
-                      {% if query != ''%}
-                    <hr />
-                    <h4 class="text-center">MESSAGE</h4>
-                    <p class="text-center"><i>{{query}}</i></p>
-                    {% endif %}
+                      </form>
+                        {% if query != ''%}
+                      <hr />
+                      <h4 class="text-center">MESSAGE</h4>
+                      <p class="text-center"><i>{{query}}</i></p>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+              {% if query != ''%}
+              <h1 class="text-center">Results</h1>
+              <div class="row">
+                <div class="col-xl-6 col-md-6 mb-4">
+                      <ul class="list-group">
+                          {% for category, classification in classification_result.items() %}
+                            {% if classification == 1 %}
+                                <li class="list-group-item list-group-item-success text-center">{{category.replace('_', ' ').title()}}</li>
+                            {% else %}
+                                <li class="list-group-item list-group-item-dark text-center">{{category.replace('_', ' ').title()}}</li>
+                            {% endif %}
+                          {% endfor %}
+
+                      </ul>
+
+                </div>
+                <div class="col-xl-6 col-md-6 mb-4">
+                  <canvas id="categories_chart" class="chartjs" width="undefined" height="undefined">
+                  <script src="{{ url_for('static', filename='vendor/chart.js/Chart.min.js') }}"></script>
+                  <script>
+                  new Chart(document.getElementById("categories_chart"),
+                    {
+                      "type":"doughnut",
+                      "data":{
+                          "labels":{{categories|tojson}},
+                          "datasets":
+                            [
+                              {
+                                "label":"Categories",
+                                "data":{{categories_totals}},
+                                "fill":false,
+                                "backgroundColor": {{background_colors | tojson}},
+                                "borderColor":{{border_colors | tojson}},
+                                "borderWidth":1
+                              }
+                            ]
+                          }
+                        //"options":{"scales":{"yAxes":[{"ticks":{"beginAtZero":true}}]}}
+                      });
+                  </script>
                 </div>
             </div>
-            {% if query != ''%}
-            <h1 class="text-center">Result</h1>
-                <ul class="list-group">
-                    {% for category, classification in classification_result.items() %}
-                        {% if classification == 1 %}
-                            <li class="list-group-item list-group-item-success text-center">{{category.replace('_', ' ').title()}}</li>
-                        {% endif %}
-                    {% endfor %}
-
-                </ul>
             {% endif %}
+            </div>
+
         {% endblock %}
 
       </div>

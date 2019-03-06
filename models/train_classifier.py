@@ -14,10 +14,11 @@ from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.stem import PorterStemmer
 
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
-from sklearn.metrics import classification_report
+from sklearn.metrics import classification_report, make_scorer, f1_score
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import LinearSVC
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
 
@@ -52,15 +53,17 @@ def build_model():
     pipeline = Pipeline([
         ('vect', CountVectorizer(tokenizer=tokenize)),
         ('tfidf', TfidfTransformer()),
-        ('clf', MultiOutputClassifier(forest))
+        ('clf', MultiOutputClassifier(RandomForestClassifier()))
     ])
+
     parameters = {
-        'clf__estimator__n_estimators': [50, 100],
-        'clf__estimator__max_features': ['auto', 'sqrt', 'log2'],
-        'clf__estimator__max_depth' : [3, 5],
-        'clf__estimator__criterion' :['gini', 'entropy']
+        #'clf__estimator__n_estimators': [50, 100]
+        #'clf__estimator__max_features': ['auto', 'sqrt', 'log2'],
+        #'clf__estimator__max_depth' : [3, 5],
+        #'clf__estimator__criterion' :['gini', 'entropy']
     }
 
+    scorer = make_scorer(f1_score)
     cv = GridSearchCV(pipeline, param_grid=parameters)
 
     return cv
