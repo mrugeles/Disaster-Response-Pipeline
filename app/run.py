@@ -1,11 +1,15 @@
 import sys
 import json
 import plotly
+import re
 import pandas as pd
 import numpy as np
+import nltk
 
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer
 
 from flask import Flask
 from flask import render_template, request, jsonify
@@ -13,8 +17,29 @@ from plotly.graph_objs import Bar
 from sklearn.externals import joblib
 from sqlalchemy import create_engine
 
+nltk.download('stopwords')
 
 app = Flask(__name__)
+
+def tokenize(text):
+    """Text tokenization
+
+    Parameters
+    ----------
+    text: string
+        Text to tokenize
+
+    Returns
+    -------
+    text: Tokenized text.
+    """
+    text = text.lower()
+    text = re.sub(r"[^a-zA-Z0-9]", " ", text)
+    words = word_tokenize(text)
+    words = [w for w in words if w not in stopwords.words("english")]
+    words = [WordNetLemmatizer().lemmatize(w, pos='v') for w in words]
+    words = stemmed = [PorterStemmer().stem(w) for w in words]
+    return text
 
 # load model
 model = joblib.load("../models/classifier.pkl")
