@@ -1,167 +1,44 @@
 import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import nltk
-import re
 
-import pandas as pd
 import numpy as np
-from sqlalchemy import create_engine
 
-from nltk.tokenize import word_tokenize
 from nltk.tokenize import sent_tokenize
-from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
-from nltk.stem.wordnet import WordNetLemmatizer
-from nltk.stem import PorterStemmer
 
-from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
-from sklearn.metrics import classification_report, make_scorer, f1_score
-from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.multioutput import MultiOutputClassifier
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import LinearSVC
 from sklearn.naive_bayes import MultinomialNB
-from sklearn.pipeline import Pipeline
+from sklearn.model_selection import train_test_split
 
-nltk.download('punkt')
-nltk.download('stopwords')
-nltk.download('wordnet')
+from data_utils import DataUtils
+from model_utils import ModelUtils
 
-def load_data(database_filepath):
-    """ Creates the dataset from a database.
-
-    Parameters
-    ----------
-    database_filepath: string
-        Path to the database for importing the data.
-
-    X: DataFrame
-        Dataset features.
-    y: DataFrame
-        Dataset targets (Categories).
-
-    category_names: list
-        List of category names.
-    """
-    print('sqlite:///'+database_filepath)
-    engine = create_engine('sqlite:///'+database_filepath)
-    df = pd.read_sql('messages', engine)
-    X = df[['message']].values.flatten()
-    y = df.drop(['id', 'message', 'original'], axis = 1)
-    category_names = list(y.columns.values)
-
-    return X, y, category_names
-
-
-def tokenize(text):
-    """Text tokenization
-
-    Parameters
-    ----------
-    text: string
-        Text to tokenize
-
-    Returns
-    -------
-    text: Tokenized text.
-    """
-    text = text.lower()
-    text = re.sub(r"[^a-zA-Z0-9]", " ", text)
-    words = word_tokenize(text)
-    words = [w for w in words if w not in stopwords.words("english")]
-    words = [WordNetLemmatizer().lemmatize(w, pos='v') for w in words]
-    words = [PorterStemmer().stem(w) for w in words]
-    return words
-
-
-def build_model():
-    """ Builds the pipeline and finds the best classification model with gridsearch.
-
-    Returns
-    -------
-
-    cv: GridSearchCV
-        GridSearchCV instance with the tuned model.
-    """
-    forest = RandomForestClassifier()
-    pipeline = Pipeline([
-        ('vect', CountVectorizer(tokenizer=tokenize)),
-        ('tfidf', TfidfTransformer()),
-        ('clf', MultiOutputClassifier(RandomForestClassifier()))
-    ])
-
-    parameters = {
-        'clf__estimator__n_estimators': [50, 100],
-        'clf__estimator__max_features': ['auto', 'sqrt', 'log2'],
-        'clf__estimator__max_depth' : [3, 5],
-        'clf__estimator__criterion' :['gini', 'entropy']
-    }
-
-    scorer = make_scorer(f1_score)
-    cv = GridSearchCV(pipeline, param_grid=parameters)
-
-    return cv
-
-
-def evaluate_model(model, X_test, Y_test, category_names):
-    """Model evaluation
-
-    Parameters
-    ----------
-
-    model: GridSearchCV
-        GridSearchCV instance with the tuned model.
-
-    X_test: Series.
-        Dataset with the test features (messages).
-
-    Y_test: Series.
-        Dataset with the test targets (categories).
-    """
-    y_pred = model.predict(X_test)
-    y_pred = pd.DataFrame(data = y_pred, columns = category_names)
-    for category in category_names:
-        print("Scoring %s"%(category))
-        print(classification_report(Y_test[category].values, y_pred[category].astype(int)))
-
-
-def save_model(model, model_filepath):
-    """Stores model
-
-    Parameters
-    ----------
-
-    model: GridSearchCV
-        GridSearchCV instance with the tuned model.
-
-    model_filepath: string
-        Path to store the model
-    """
-    import pickle
-    # save the classifier
-    pickle.dump(model, open(model_filepath, 'wb'))
-    return True
-
+modelUtils = ModelUtils()
+dataUtils = DataUtils()
 
 def main():
     if len(sys.argv) == 3:
         database_filepath, model_filepath = sys.argv[1:]
         print('Loading data...\n    DATABASE: {}'.format(database_filepath))
-        X, Y, category_names = load_data(database_filepath)
+        X, Y, category_names = dataUtils.load_db_data(database_filepath)
 
         X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
 
         print('Building model...')
-        model = build_model()
+        model = modelUtils.build_model()
 
         print('Training model...')
 
         model.fit(X_train, Y_train)
 
         print('Evaluating model...')
-        evaluate_model(model, X_test, Y_test, category_names)
+        modelUtils.evaluate_model(model, X_test, Y_test, category_names)
 
         print('Saving model...\n    MODEL: {}'.format(model_filepath))
-        save_model(model, model_filepath)
+        modelUtils.save_model(model, model_filepath)
 
         print('Trained model saved!')
 

@@ -1,1 +1,3 @@
 models/classifier.pkl
+.ipynb_checkpoints/**
+__pycache__/**
