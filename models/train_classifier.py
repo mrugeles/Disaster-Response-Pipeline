@@ -4,6 +4,7 @@ from metaflow import FlowSpec, Parameter, step
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import nltk
+nltk.download('words')
 
 import numpy as np
 
@@ -13,6 +14,8 @@ from nltk.tokenize import word_tokenize
 from sklearn.svm import LinearSVC
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.model_selection import train_test_split
+from sklearn.multioutput import MultiOutputClassifier
+from sklearn.ensemble import RandomForestClassifier
 
 from data_utils import DataUtils
 from model_utils import ModelUtils
@@ -39,18 +42,20 @@ class ModelFlow(FlowSpec):
     @step
     def load_data(self):
         self.X, self.Y, self.category_names = self.dataUtils.load_db_data(self.database_filepath)
-        self.X_train, self.X_test, self.Y_train, self.Y_test = train_test_split(self.X, self.Y, test_size=0.2)
         self.next(self.pre_process)
 
     @step
     def pre_process(self):
-        self.X_train = self.nlpUtils.vectorize(self.X_train)
+        
+        self.X = self.nlpUtils.vectorize(self.X)
+        self.X_train, self.X_test, self.Y_train, self.Y_test = train_test_split(self.X, self.Y, test_size=0.2)
+
         self.next(self.build_model)
 
 
     @step
     def build_model(self):
-        self.model = self.modelUtils.build_model()
+        self.model = MultiOutputClassifier(RandomForestClassifier())
         self.model.fit(self.X_train, self.Y_train)
         self.modelUtils.evaluate_model(self.model, self.X_test, self.Y_test, self.category_names)
         self.next(self.save_model)

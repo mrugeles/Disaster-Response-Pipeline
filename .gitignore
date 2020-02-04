@@ -1,3 +1,4 @@
 models/classifier.pkl
 .ipynb_checkpoints/**
+.metaflow/**
 __pycache__/**
