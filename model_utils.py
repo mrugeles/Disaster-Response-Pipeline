@@ -36,7 +36,7 @@ class ModelUtils():
         }
 
         scorer = make_scorer(f1_score)
-        cv = GridSearchCV(pipeline, scoring=scorer, param_grid=parameters, verbose=50)
+        cv = GridSearchCV(MultiOutputClassifier(forest), scoring=scorer, param_grid=parameters, verbose=50)
 
         return cv
 
