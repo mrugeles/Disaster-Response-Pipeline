@@ -3,6 +3,12 @@ import re
 
 import pandas as pd
 import numpy as np
+import pickle
+
+from tqdm import tqdm
+from time import time
+import logging
+
 import nltk
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
@@ -20,6 +26,8 @@ nltk.download('punkt')
 nltk.download('stopwords')
 nltk.download('wordnet')
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+
 class NLPUtils():
 
     english_corpus = set(words.words())
@@ -36,23 +44,40 @@ class NLPUtils():
         -------
         text: Tokenized text.
         """
+        text = text.lower()
         text = re.sub(r"[^a-z]", " ", text)
+        #text = TextBlob(text).correct().string
         word_list = word_tokenize(text)
         word_list = [w for w in word_list if w not in stopwords.words("english")]
         word_list = [WordNetLemmatizer().lemmatize(w, pos='v') for w in word_list]
-        #word_list = set(word_list).intersection(self.english_corpus)
-        #words = [PorterStemmer().stem(w) for w in words]
-        return list(word_list)
+        #word_list = list(set(word_list).intersection(self.english_corpus))
+        return word_list
 
-    def vectorize(self, features):
+    def create_countvectorizer(self, features_corpus_path, pickle_path):
+        features_corpus = pd.read_csv(features_corpus_path)
+        count_vect = CountVectorizer(tokenizer=self.tokenize)
+        count_vect = count_vect.fit(features_corpus['document'])
+        pickle.dump(count_vect, open(pickle_path, "wb"))
+
+
+    def vectorize(self, features, pickle_path):
+        start = time()
         english_corpus = set(words.words())
 
-        count_vect = CountVectorizer(tokenizer=self.tokenize)
-        vectorized = count_vect.fit_transform(features)
+        count_vect = pickle.load(pickle_path)
+        vectorized = count_vect.transform(features)
+
         matrix = pd.DataFrame(vectorized.toarray(), columns=count_vect.get_feature_names())
         word_list = list(matrix.columns)
+        word_list = [TextBlob(word).correct().string for word in tqdm(word_list)]
+        matrix.columns = word_list
         word_list = list(set(word_list).intersection(english_corpus))
         word_list.sort()
         matrix = matrix[word_list]
 
-        return TfidfTransformer().fit_transform(csr_matrix(matrix.values))
+        vector = TfidfTransformer().fit_transform(csr_matrix(matrix.values))
+        end = time()
+
+        print(f'Vectorizing time: {end - start}')
+
+        return vector

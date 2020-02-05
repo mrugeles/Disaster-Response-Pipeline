@@ -1,11 +1,12 @@
 import sys
 import os
-from metaflow import FlowSpec, Parameter, step
+from metaflow import FlowSpec, Parameter, step, resources
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import nltk
 nltk.download('words')
 
+import pandas as pd
 import numpy as np
 
 from nltk.tokenize import sent_tokenize
@@ -42,12 +43,16 @@ class ModelFlow(FlowSpec):
     @step
     def load_data(self):
         self.X, self.Y, self.category_names = self.dataUtils.load_db_data(self.database_filepath)
+        features_corpus = pd.DataFrame(self.X, columns = ['document'])
+        features_corpus.to_csv('data/features_corpus.csv', index = False)
         self.next(self.pre_process)
 
+    #@resources(cpu=3)
     @step
     def pre_process(self):
-        
-        self.X = self.nlpUtils.vectorize(self.X)
+        print('Call vectorize')
+        self.nlpUtils.create_countvectorizer('data/features_corpus.csv', 'model/count_vectorizer.pickle')
+        self.X = self.nlpUtils.vectorize(self.X, 'model/count_vectorizer.pickle')
         self.X_train, self.X_test, self.Y_train, self.Y_test = train_test_split(self.X, self.Y, test_size=0.2)
 
         self.next(self.build_model)
