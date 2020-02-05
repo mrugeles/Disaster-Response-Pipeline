@@ -46,11 +46,15 @@ columns = ['related', 'request', 'offer',
 
 
 def main():
+
+   
+
+
     model = joblib.load('models/classifier.pkl')
     text = 'After the earthquake i cannot call any body. even when i ihave 10 signal'
     X = [text]
     query = pd.DataFrame(X, columns=['document'])
-    query = nlpUtils.vectorize(query['document'], 'data/features_corpus.csv')
+    query = nlpUtils.vectorize_data(query['document'], 'count_vectorizer.p')
     y_pred = model.predict(query)[0]
     classification_results = dict(zip(columns, y_pred))
     classification_results =  {key:value for (key,value) in classification_results.items() if value == 1}

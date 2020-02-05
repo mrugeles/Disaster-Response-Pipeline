@@ -51,8 +51,8 @@ class ModelFlow(FlowSpec):
     @step
     def pre_process(self):
         print('Call vectorize')
-        self.nlpUtils.create_countvectorizer('data/features_corpus.csv', 'model/count_vectorizer.pickle')
-        self.X = self.nlpUtils.vectorize(self.X, 'model/count_vectorizer.pickle')
+        self.nlpUtils.create_vector_model(self.X, 'data/features_corpus.csv', 'count_vectorizer.p')
+        self.X = self.nlpUtils.vectorize_data(self.X, 'count_vectorizer.p')
         self.X_train, self.X_test, self.Y_train, self.Y_test = train_test_split(self.X, self.Y, test_size=0.2)
 
         self.next(self.build_model)

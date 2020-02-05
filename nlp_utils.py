@@ -53,18 +53,17 @@ class NLPUtils():
         #word_list = list(set(word_list).intersection(self.english_corpus))
         return word_list
 
-    def create_countvectorizer(self, features_corpus_path, pickle_path):
-        features_corpus = pd.read_csv(features_corpus_path)
-        count_vect = CountVectorizer(tokenizer=self.tokenize)
-        count_vect = count_vect.fit(features_corpus['document'])
-        pickle.dump(count_vect, open(pickle_path, "wb"))
+        
 
 
-    def vectorize(self, features, pickle_path):
+    def create_vector_model(self, features, features_corpus_path, pickle_path):
         start = time()
         english_corpus = set(words.words())
 
-        count_vect = pickle.load(pickle_path)
+        features_corpus = pd.read_csv(features_corpus_path)
+        count_vect = CountVectorizer(tokenizer=self.tokenize)
+        count_vect = count_vect.fit(features_corpus['document'])
+
         vectorized = count_vect.transform(features)
 
         matrix = pd.DataFrame(vectorized.toarray(), columns=count_vect.get_feature_names())
@@ -74,10 +73,19 @@ class NLPUtils():
         word_list = list(set(word_list).intersection(english_corpus))
         word_list.sort()
         matrix = matrix[word_list]
+        matrix = csr_matrix(matrix.values)
 
-        vector = TfidfTransformer().fit_transform(csr_matrix(matrix.values))
+        vector = TfidfTransformer().fit(matrix)
+        pickle.dump(vector, open(pickle_path, "wb"))
+        
         end = time()
 
         print(f'Vectorizing time: {end - start}')
 
         return vector
+
+    def vectorize_data(self, data, pickle_path):
+        vectorizer = pickle.load(open( pickle_path, "rb" ))
+        print(f'type: {type(vectorizer)}')
+        return vectorizer.transform(data)
+
