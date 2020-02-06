@@ -56,36 +56,80 @@ class NLPUtils():
         
 
 
-    def create_vector_model(self, features, features_corpus_path, pickle_path):
+    def create_vector_model(self, features, pickle_path):
         start = time()
-        english_corpus = set(words.words())
 
-        features_corpus = pd.read_csv(features_corpus_path)
         count_vect = CountVectorizer(tokenizer=self.tokenize)
-        count_vect = count_vect.fit(features_corpus['document'])
+        count_vect = count_vect.fit(features)
 
         vectorized = count_vect.transform(features)
-
         matrix = pd.DataFrame(vectorized.toarray(), columns=count_vect.get_feature_names())
+        print(f'count vector features: {len(count_vect.get_feature_names())}')
+
         word_list = list(matrix.columns)
-        word_list = [TextBlob(word).correct().string for word in tqdm(word_list)]
+        word_list = [TextBlob(word).correct().string for word in word_list]
         matrix.columns = word_list
-        word_list = list(set(word_list).intersection(english_corpus))
+        word_list = list(set(word_list).intersection(self.english_corpus))
         word_list.sort()
-        matrix = matrix[word_list]
+
+
+        matrix = matrix.loc[:, set(word_list)]
+        matrix = matrix.loc[:,~matrix.columns.duplicated()] # This is a X-file case
+        
+        pd.DataFrame(list(matrix.columns), columns = ['feature']).to_csv('model_features.csv', index = False)
+
+
         matrix = csr_matrix(matrix.values)
 
-        vector = TfidfTransformer().fit(matrix)
-        pickle.dump(vector, open(pickle_path, "wb"))
+        vectorizer = TfidfTransformer().fit(matrix)
+        pickle.dump(vectorizer, open(pickle_path, "wb"))
         
+        matrix = vectorizer.transform(matrix)
         end = time()
 
+        print(f'TfidfTransformer features: {matrix.shape}')
         print(f'Vectorizing time: {end - start}')
 
-        return vector
+        return matrix
 
-    def vectorize_data(self, data, pickle_path):
-        vectorizer = pickle.load(open( pickle_path, "rb" ))
-        print(f'type: {type(vectorizer)}')
-        return vectorizer.transform(data)
+    def get_matrix(self, data):
+        count_vect = CountVectorizer(tokenizer=self.tokenize)
+        vectorized = count_vect.fit_transform(data)
+        return pd.DataFrame(vectorized.toarray(), columns=count_vect.get_feature_names())
 
+    def vectorize_query(self, query):
+        query = TextBlob(query).correct().string
+        matrix_query = self.get_matrix([query])
+        print(f'matrix_query.shape: {matrix_query.shape}')
+        model_features = pd.read_csv('model_features.csv')
+        print(model_features.loc[model_features['feature'].isna()])
+        print(f'model_features.shape: {model_features.shape}')
+        
+        model_features = list(model_features['feature'].values)
+
+        print(len(model_features))
+        print(len(set(model_features)))
+        print(set(matrix_query.columns))
+
+        add_features = list(set(model_features).difference(set(matrix_query.columns)))
+        remove_features = list(set(matrix_query.columns).difference(set(model_features)))
+
+        print(f'add_features: {len(add_features)}')
+        print(f'remove_features: {len(remove_features)}')
+
+        n_features = len(add_features)
+        n_rows = matrix_query.shape[0]
+
+        matrix_query = matrix_query.drop(remove_features, axis = 1)
+        matrix_query[add_features] = pd.DataFrame(np.zeros((n_rows, n_features), dtype = int), columns = add_features)
+        
+        features = np.array(matrix_query.columns, dtype=str)
+        
+        features.sort()
+
+        matrix_query = matrix_query[features]
+        
+        matrix_query = csr_matrix(matrix_query.values)
+        vectorizer = pickle.load( open( 'count_vectorizer.p', "rb" ) )
+        
+        return vectorizer.transform(matrix_query)

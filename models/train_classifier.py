@@ -43,16 +43,13 @@ class ModelFlow(FlowSpec):
     @step
     def load_data(self):
         self.X, self.Y, self.category_names = self.dataUtils.load_db_data(self.database_filepath)
-        features_corpus = pd.DataFrame(self.X, columns = ['document'])
-        features_corpus.to_csv('data/features_corpus.csv', index = False)
         self.next(self.pre_process)
 
     #@resources(cpu=3)
     @step
     def pre_process(self):
         print('Call vectorize')
-        self.nlpUtils.create_vector_model(self.X, 'data/features_corpus.csv', 'count_vectorizer.p')
-        self.X = self.nlpUtils.vectorize_data(self.X, 'count_vectorizer.p')
+        self.X = self.nlpUtils.create_vector_model(self.X, 'count_vectorizer.p')
         self.X_train, self.X_test, self.Y_train, self.Y_test = train_test_split(self.X, self.Y, test_size=0.2)
 
         self.next(self.build_model)

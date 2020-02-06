@@ -30,6 +30,7 @@ nltk.download('wordnet')
 
 from sklearn.externals import joblib
 from nlp_utils import NLPUtils
+
 nlpUtils = NLPUtils()
 #features_corpus = pd.read_csv('data/features_corpus.csv')
 
@@ -52,10 +53,9 @@ def main():
 
     model = joblib.load('models/classifier.pkl')
     text = 'After the earthquake i cannot call any body. even when i ihave 10 signal'
-    X = [text]
-    query = pd.DataFrame(X, columns=['document'])
-    query = nlpUtils.vectorize_data(query['document'], 'count_vectorizer.p')
-    y_pred = model.predict(query)[0]
+    X = nlpUtils.vectorize_query(text)
+
+    y_pred = model.predict(X)[0]
     classification_results = dict(zip(columns, y_pred))
     classification_results =  {key:value for (key,value) in classification_results.items() if value == 1}
     print(f'query: {text}')
