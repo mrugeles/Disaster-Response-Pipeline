@@ -76,7 +76,8 @@ class NLPUtils():
         matrix = matrix.loc[:, set(word_list)]
         matrix = matrix.loc[:,~matrix.columns.duplicated()] # This is a X-file case
         
-        pd.DataFrame(list(matrix.columns), columns = ['feature']).to_csv('model_features.csv', index = False)
+        model_features = pd.DataFrame(list(matrix.columns), columns = ['feature'])
+        model_features.to_csv('model_features.csv', index = False)
 
 
         matrix = csr_matrix(matrix.values)
