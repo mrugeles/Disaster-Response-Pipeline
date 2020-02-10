@@ -2,6 +2,7 @@ import sys
 import os
 from metaflow import FlowSpec, Parameter, step, resources
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from time import time
 
 import nltk
 nltk.download('words')
@@ -43,20 +44,36 @@ class ModelFlow(FlowSpec):
     @step
     def load_data(self):
         self.X, self.Y, self.category_names = self.dataUtils.load_db_data(self.database_filepath)
-        self.next(self.pre_process)
+        self.next(self.vectorize)
 
     #@resources(cpu=3)
     @step
-    def pre_process(self):
-        print('Call vectorize')
-        self.X = self.nlpUtils.create_vector_model(self.X, 'count_vectorizer.p')
-        self.X_train, self.X_test, self.Y_train, self.Y_test = train_test_split(self.X, self.Y, test_size=0.2)
-
-        self.next(self.build_model)
-
+    def vectorize(self):
+        start = time()
+        self.X = self.nlpUtils.create_vector_model(self.X)
+        end = time()
+        print(f'vectorize time: {end - start}')
+        self.next(self.clean_vector)
 
     @step
+    def clean_vector(self):
+        start = time()
+        self.X = self.nlpUtils.clean_count_vector(self.X)
+        end = time()
+        print(f'clean_vector time: {end - start}')
+        self.next(self.normalize)
+
+    @step
+    def normalize(self):
+        start = time()
+        self.X = self.nlpUtils.normalize_count_vector(self.X)
+        end = time()
+        print(f'normalize time: {end - start}')
+        self.next(self.build_model)
+        
+    @step
     def build_model(self):
+        self.X_train, self.X_test, self.Y_train, self.Y_test = train_test_split(self.X, self.Y, test_size=0.2)
         self.model = MultiOutputClassifier(RandomForestClassifier())
         self.model.fit(self.X_train, self.Y_train)
         self.modelUtils.evaluate_model(self.model, self.X_test, self.Y_test, self.category_names)

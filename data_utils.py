@@ -21,7 +21,7 @@ class DataUtils():
         """
         print('sqlite:///'+database_filepath)
         engine = create_engine('sqlite:///'+database_filepath)
-        df = pd.read_sql('messages', engine)
+        df = pd.read_sql('messages', engine).sample(10000)
         X = df[['message']].values.flatten()
         y = df.drop(['id', 'message', 'original'], axis = 1)
         category_names = list(y.columns.values)

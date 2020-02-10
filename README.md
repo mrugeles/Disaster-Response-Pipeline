@@ -13,7 +13,7 @@ The Disaster Response Pipeline allows to organize messages from social media in 
     - To run ETL pipeline that cleans data and stores in database
         `python data/process_data.py data/disaster_messages.csv data/disaster_categories.csv data/DisasterResponse.db`
     - To run ML pipeline that trains classifier and saves
-        `python models/train_classifier.py data/DisasterResponse.db models/classifier.pkl`
+        `models/train_classifier.py run --database_filepath data/DisasterResponse.db --model_filepath models/classifier.pkl`
     - To test the pipeline
         `python models/test_model.py`
 

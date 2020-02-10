@@ -5,8 +5,9 @@ import pandas as pd
 import numpy as np
 import pickle
 
-from tqdm import tqdm
 from time import time
+
+from tqdm import tqdm
 import logging
 
 import nltk
@@ -17,6 +18,7 @@ from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.stem import PorterStemmer
 
 from textblob import TextBlob
+from textblob import Word
 
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 
@@ -46,52 +48,80 @@ class NLPUtils():
         """
         text = text.lower()
         text = re.sub(r"[^a-z]", " ", text)
-        #text = TextBlob(text).correct().string
         word_list = word_tokenize(text)
         word_list = [w for w in word_list if w not in stopwords.words("english")]
         word_list = [WordNetLemmatizer().lemmatize(w, pos='v') for w in word_list]
-        #word_list = list(set(word_list).intersection(self.english_corpus))
         return word_list
 
         
 
+    def spellcheck(self, word, threshold):
+        value = Word(word).spellcheck()[0]
+        if (value[1] < threshold):
+            return f'-1'
+        return value[0]
 
-    def create_vector_model(self, features, pickle_path):
-        start = time()
+
+    def correct(self, text):
+        return TextBlob(text).correct().string
+
+
+    def process_words(self, columns):
+        word_list = [(word, self.spellcheck(word, 0.7)) for word in columns]
+        word_list = dict(word_list)
+        return word_list
+
+
+    def create_vector_model(self, features):
 
         count_vect = CountVectorizer(tokenizer=self.tokenize)
         count_vect = count_vect.fit(features)
 
         vectorized = count_vect.transform(features)
         matrix = pd.DataFrame(vectorized.toarray(), columns=count_vect.get_feature_names())
-        print(f'count vector features: {len(count_vect.get_feature_names())}')
-
-        word_list = list(matrix.columns)
-        word_list = [TextBlob(word).correct().string for word in word_list]
-        matrix.columns = word_list
-        word_list = list(set(word_list).intersection(self.english_corpus))
-        word_list.sort()
-
-
-        matrix = matrix.loc[:, set(word_list)]
-        matrix = matrix.loc[:,~matrix.columns.duplicated()] # This is a X-file case
-        
-        model_features = pd.DataFrame(list(matrix.columns), columns = ['feature'])
-        model_features.to_csv('model_features.csv', index = False)
-
-
-        matrix = csr_matrix(matrix.values)
-
-        vectorizer = TfidfTransformer().fit(matrix)
-        pickle.dump(vectorizer, open(pickle_path, "wb"))
-        
-        matrix = vectorizer.transform(matrix)
-        end = time()
 
         print(f'TfidfTransformer features: {matrix.shape}')
-        print(f'Vectorizing time: {end - start}')
 
         return matrix
+
+    def clean_count_vector(self, matrix):
+        start = time()
+        columns_df = pd.DataFrame(list(matrix.columns), columns = ['feature'])
+        columns_df['feature_spellcheck'] = columns_df['feature'].apply(lambda word: self.spellcheck(word, 0.7))
+        print(f'feature_spellcheck time: {time() - start}')
+
+        start = time()
+        drop_columns = columns_df.loc[columns_df['feature_spellcheck'] == "-1"]['feature'].values
+        matrix = matrix.drop(drop_columns, axis = 1)
+        print(f'drop_columns time: {time() - start}')
+
+
+        start = time()
+        renamed_columns = dict(columns_df.loc[columns_df['feature_spellcheck'] != "-1"].to_dict('split')['data'])
+        matrix = matrix.rename(columns = renamed_columns)
+        print(f'renamed_columns time: {time() - start}')
+
+        start = time()
+        for column in tqdm(matrix.columns[matrix.columns.duplicated()]):
+            matrix[f'{column}_duplicated'] = matrix[column].groupby(level = 0, axis = 1).sum()
+            matrix[f'{column}_duplicated'] = matrix[f'{column}_duplicated'].apply(lambda n: 1 if n > 1 else n)
+
+        matrix = matrix.drop(matrix.columns[matrix.columns.duplicated()], axis = 1)
+
+        matrix.rename(columns=lambda x: x.replace('_duplicated', ''), inplace=True)
+        print(f'remove duplicated columns time: {time() - start}')
+
+        '''start = time()
+        matrix = matrix.applymap(lambda n: 1 if n > 1 else n)
+        print(f'applymap: {time() - start}')'''
+        return csr_matrix(matrix.values)
+
+    def normalize_count_vector(self, count_matrix):
+        vectorizer = TfidfTransformer().fit(count_matrix)
+        pickle.dump(vectorizer, open('count_vectorizer.p', "wb"))
+        matrix = vectorizer.transform(count_matrix)
+        return matrix
+
 
     def get_matrix(self, data):
         count_vect = CountVectorizer(tokenizer=self.tokenize)
