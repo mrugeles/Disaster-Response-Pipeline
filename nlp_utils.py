@@ -87,7 +87,7 @@ class NLPUtils():
     def clean_count_vector(self, matrix):
         start = time()
         columns_df = pd.DataFrame(list(matrix.columns), columns = ['feature'])
-        columns_df['feature_spellcheck'] = columns_df['feature'].apply(lambda word: self.spellcheck(word, 0.7))
+        columns_df['feature_spellcheck'] = columns_df['feature'].progress_apply(lambda word: self.spellcheck(word, 0.7))
         print(f'feature_spellcheck time: {time() - start}')
 
         start = time()

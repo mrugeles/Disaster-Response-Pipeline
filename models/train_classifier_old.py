@@ -9,7 +9,6 @@ nltk.download('words')
 
 import pandas as pd
 import numpy as np
-from tqdm import tqdm
 
 from nltk.tokenize import sent_tokenize
 from nltk.tokenize import word_tokenize
@@ -24,10 +23,6 @@ from data_utils import DataUtils
 from model_utils import ModelUtils
 from nlp_utils import NLPUtils
 
-import warnings
-warnings.filterwarnings('ignore')
-
-tqdm.pandas(desc="feature_spellcheck")
 
 class ModelFlow(FlowSpec):
 
