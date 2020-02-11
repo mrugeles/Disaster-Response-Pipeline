@@ -84,6 +84,21 @@ class NLPUtils():
 
         return matrix
 
+
+    def drop_duplicated(self, matrix):
+        processed_columns = []    
+
+        for column in tqdm(matrix.columns[matrix.columns.duplicated()]):
+            if(column not in processed_columns):
+                column_indexes = np.where(matrix.columns.values == column)[0]
+                
+                for idx in column_indexes[1:]:
+                    matrix.iloc[:, column_indexes[0]] = matrix.iloc[:, column_indexes[0]].combine(matrix.iloc[:, idx], max)
+                processed_columns += [column]
+        matrix = matrix.iloc[:,~matrix.columns.duplicated()]
+        return matrix
+
+
     def clean_count_vector(self, matrix):
         start = time()
         columns_df = pd.DataFrame(list(matrix.columns), columns = ['feature'])
@@ -101,19 +116,7 @@ class NLPUtils():
         matrix = matrix.rename(columns = renamed_columns)
         print(f'renamed_columns time: {time() - start}')
 
-        start = time()
-        for column in tqdm(matrix.columns[matrix.columns.duplicated()]):
-            matrix[f'{column}_duplicated'] = matrix[column].groupby(level = 0, axis = 1).sum()
-            matrix[f'{column}_duplicated'] = matrix[f'{column}_duplicated'].apply(lambda n: 1 if n > 1 else n)
-
-        matrix = matrix.drop(matrix.columns[matrix.columns.duplicated()], axis = 1)
-
-        matrix.rename(columns=lambda x: x.replace('_duplicated', ''), inplace=True)
-        print(f'remove duplicated columns time: {time() - start}')
-
-        '''start = time()
-        matrix = matrix.applymap(lambda n: 1 if n > 1 else n)
-        print(f'applymap: {time() - start}')'''
+        matrix = self.drop_duplicated(matrix)
         return csr_matrix(matrix.values)
 
     def normalize_count_vector(self, count_matrix):
