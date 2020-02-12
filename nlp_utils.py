@@ -117,6 +117,12 @@ class NLPUtils():
         print(f'renamed_columns time: {time() - start}')
 
         matrix = self.drop_duplicated(matrix)
+
+        matrix = matrix.reindex(sorted(matrix.columns), axis=1)
+        
+        model_features = pd.DataFrame(matrix.columns, columns = ['feature'])
+        model_features.to_csv('model_features.csv', index = False)
+        
         return csr_matrix(matrix.values)
 
     def normalize_count_vector(self, count_matrix):
@@ -157,11 +163,7 @@ class NLPUtils():
         matrix_query = matrix_query.drop(remove_features, axis = 1)
         matrix_query[add_features] = pd.DataFrame(np.zeros((n_rows, n_features), dtype = int), columns = add_features)
         
-        features = np.array(matrix_query.columns, dtype=str)
-        
-        features.sort()
-
-        matrix_query = matrix_query[features]
+        matrix_query = matrix_query.reindex(sorted(matrix_query.columns), axis=1)
         
         matrix_query = csr_matrix(matrix_query.values)
         vectorizer = pickle.load( open( 'count_vectorizer.p', "rb" ) )
