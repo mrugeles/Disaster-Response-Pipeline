@@ -46,10 +46,13 @@ class NLPUtils():
         -------
         text: Tokenized text.
         """
+        stopwords_list = stopwords.words("english")
+        stopwords_list += ['null']
+
         text = text.lower()
         text = re.sub(r"[^a-z]", " ", text)
         word_list = word_tokenize(text)
-        word_list = [w for w in word_list if w not in stopwords.words("english")]
+        word_list = [w for w in word_list if w not in stopwords_list]
         word_list = [WordNetLemmatizer().lemmatize(w, pos='v') for w in word_list]
         return word_list
 
@@ -106,7 +109,11 @@ class NLPUtils():
         print(f'feature_spellcheck time: {time() - start}')
 
         start = time()
-        drop_columns = columns_df.loc[columns_df['feature_spellcheck'] == "-1"]['feature'].values
+        drop_columns = columns_df.loc[
+            (columns_df['feature_spellcheck'] == "-1") |
+            (columns_df['feature_spellcheck'] == "null") |
+            (columns_df['feature_spellcheck'] == "nan")
+        ]['feature'].values
         matrix = matrix.drop(drop_columns, axis = 1)
         print(f'drop_columns time: {time() - start}')
 
