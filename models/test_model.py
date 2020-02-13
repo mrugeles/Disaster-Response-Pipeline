@@ -8,6 +8,7 @@ import re
 import pandas as pd
 import numpy as np
 from sqlalchemy import create_engine
+from time import time
 
 from nltk.tokenize import word_tokenize
 from nltk.tokenize import sent_tokenize
@@ -52,10 +53,12 @@ def main():
 
 
     model = joblib.load('models/classifier.pkl')
-    text = 'After the earthquake i cannot call any body. even when i ihave 10 signal'
+    text = 'Church bells sounded on Sunday as rescuers recovered bodies of victims drowned by the floods which covered wide areas.'
     X = nlpUtils.vectorize_query(text)
 
+    start = time()
     y_pred = model.predict(X)[0]
+    print(f'prediction time: {time() - start}')
     classification_results = dict(zip(columns, y_pred))
     classification_results =  {key:value for (key,value) in classification_results.items() if value == 1}
     print(f'query: {text}')
