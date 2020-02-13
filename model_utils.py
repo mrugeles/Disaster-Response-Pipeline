@@ -27,16 +27,17 @@ class ModelUtils():
         """
         forest = RandomForestClassifier()
         pipeline = Pipeline([
-            ('vect', CountVectorizer(tokenizer=self.nlpUtils.tokenize)),
-            ('tfidf', TfidfTransformer()),
+            #('vect', CountVectorizer(tokenizer=self.nlpUtils.tokenize)),
+            #('tfidf', TfidfTransformer()),
             ('clf', MultiOutputClassifier(forest))
         ])
 
         parameters = {
         }
 
-        scorer = make_scorer(f1_score)
-        cv = GridSearchCV(pipeline, scoring=scorer, param_grid=parameters, verbose=50)
+        scorer = make_scorer(f1_score, average = 'micro')
+        model = MultiOutputClassifier(RandomForestClassifier(class_weight='balanced'))
+        cv = GridSearchCV(model, scoring=scorer, param_grid=parameters, verbose=50)
 
         return cv
 
@@ -58,10 +59,12 @@ class ModelUtils():
         """
         y_pred = model.predict(X_test)
         y_pred = pd.DataFrame(data = y_pred, columns = category_names)
+        scores = {}
         for category in category_names:
-            print("Scoring %s"%(category))
-            print(classification_report(Y_test[category].values, y_pred[category].astype(int)))
-
+            score = f1_score(Y_test[category].values, y_pred[category].astype(int), average='weighted')
+            scores[category] = [score]
+        scores = pd.DataFrame.from_dict(scores, orient = 'index', columns = ['score'])
+        return scores
 
     def save_model(self,model, model_filepath):
         """Stores model

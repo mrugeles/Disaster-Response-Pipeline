@@ -1,4 +1,7 @@
 import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import json
 import plotly
 import re
@@ -17,33 +20,16 @@ from plotly.graph_objs import Bar
 from sklearn.externals import joblib
 from sqlalchemy import create_engine
 
+from nlp_utils import NLPUtils
+
 nltk.download('stopwords')
 
 app = Flask(__name__)
-
-def tokenize(text):
-    """Text tokenization
-
-    Parameters
-    ----------
-    text: string
-        Text to tokenize
-
-    Returns
-    -------
-    text: Tokenized text.
-    """
-    text = text.lower()
-    text = re.sub(r"[^a-zA-Z0-9]", " ", text)
-    words = word_tokenize(text)
-    words = [w for w in words if w not in stopwords.words("english")]
-    words = [WordNetLemmatizer().lemmatize(w, pos='v') for w in words]
-    words = stemmed = [PorterStemmer().stem(w) for w in words]
-    return text
+nlpUtils = NLPUtils()
 
 # load model
 model = joblib.load("../models/classifier.pkl")
-
+features_corpus = pd.read_csv('../data/features_corpus.csv')
 # Dataset categories
 columns = ['related', 'request', 'offer',
    'aid_related', 'medical_help', 'medical_products',
@@ -110,7 +96,11 @@ def index():
 
     if(query != ''):
         # use model to predict classification for query
-        classification_labels = model.predict([query])[0]
+        query = pd.DataFrame([query], columns=['document'])
+        print(f'query: {query}')
+        query = nlpUtils.vectorize(query['document'], features_corpus)
+        classification_labels = model.predict(query)[0]
+        print(f'classification_labels: {classification_labels}')
         classification_results = dict(zip(columns, classification_labels))
 
         columns_df = ['message']

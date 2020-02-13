@@ -1,10 +1,14 @@
 import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import nltk
 import re
 
 import pandas as pd
 import numpy as np
 from sqlalchemy import create_engine
+from time import time
 
 from nltk.tokenize import word_tokenize
 from nltk.tokenize import sent_tokenize
@@ -26,6 +30,11 @@ nltk.download('stopwords')
 nltk.download('wordnet')
 
 from sklearn.externals import joblib
+from nlp_utils import NLPUtils
+
+nlpUtils = NLPUtils()
+#features_corpus = pd.read_csv('data/features_corpus.csv')
+
 
 columns = ['related', 'request', 'offer',
    'aid_related', 'medical_help', 'medical_products',
@@ -37,20 +46,22 @@ columns = ['related', 'request', 'offer',
    'floods', 'storm', 'fire', 'earthquake', 'cold', 'other_weather',
    'direct_report', 'genre_direct', 'genre_news', 'genre_social']
 
-def tokenize(text):
-    text = text.lower()
-    text = re.sub(r"[^a-zA-Z0-9]", " ", text)
-    words = word_tokenize(text)
-    words = [w for w in words if w not in stopwords.words("english")]
-    words = [WordNetLemmatizer().lemmatize(w, pos='v') for w in words]
-    words = stemmed = [PorterStemmer().stem(w) for w in words]
-    return text
 
 def main():
+
+   
+
+
     model = joblib.load('models/classifier.pkl')
-    X = ['we need medicines, can anyone help us with that?']
+    text = 'Church bells sounded on Sunday as rescuers recovered bodies of victims drowned by the floods which covered wide areas.'
+    X = nlpUtils.vectorize_query(text)
+
+    start = time()
     y_pred = model.predict(X)[0]
-    print(y_pred)
+    classification_results = dict(zip(columns, y_pred))
+    classification_results =  {key:value for (key,value) in classification_results.items() if value == 1}
+    print(f'query: {text}')
+    print(classification_results)
 
 if __name__ == '__main__':
     main()
