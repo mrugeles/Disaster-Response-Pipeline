@@ -58,11 +58,9 @@ def main():
 
     start = time()
     y_pred = model.predict(X)[0]
-    print(f'prediction time: {time() - start}')
     classification_results = dict(zip(columns, y_pred))
     classification_results =  {key:value for (key,value) in classification_results.items() if value == 1}
     print(f'query: {text}')
-    print(y_pred)
     print(classification_results)
 
 if __name__ == '__main__':

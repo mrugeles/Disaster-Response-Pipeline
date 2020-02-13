@@ -1,6 +1,6 @@
 import sys
 import os
-from metaflow import FlowSpec, Parameter, step, resources
+from metaflow import FlowSpec, Parameter, step
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from time import time
 
@@ -31,59 +31,66 @@ tqdm.pandas(desc="feature_spellcheck")
 
 class ModelFlow(FlowSpec):
 
-    database_filepath = 'data/DisasterResponse.db'
-    model_filepath = 'models/classifier.pkl'
+    fraction = Parameter('fraction',
+                    help='Dataset sample size',
+                    type=float)
 
-    def __init__(self):
+    version_name = Parameter('version_name',
+                    help='A version name for this flow',
+                    type=str)
+
+    database_filepath = Parameter('database_filepath',
+                    help='Filepath of the disaster messages database',
+                    type=str)
+    model_filepath = Parameter('model_filepath',
+                help='Filepath of the pickle file to save the model',
+                type=str)
+
+    @step
+    def start(self):
         self.modelUtils = ModelUtils()
         self.dataUtils = DataUtils()
         self.nlpUtils = NLPUtils()
-        self.X = None
-        self.Y = None
-        self.category_names = None
+        self.next(self.load_data)
 
-    def start(self):
-        self.load_data()
-        self.vectorize()
-        self.clean_vector()
-        self.normalize()
-        self.build_model()
-        self.save_model()
-
-
+    @step
     def load_data(self):
-        self.X, self.Y, self.category_names = self.dataUtils.load_db_data(self.database_filepath)
+        self.X, self.Y, self.category_names = self.dataUtils.load_db_data(self.database_filepath, self.fraction)
+        self.next(self.vectorize)
 
 
+    @step
     def vectorize(self):
-        start = time()
         self.X = self.nlpUtils.create_vector_model(self.X)
-        end = time()
-        print(f'vectorize time: {end - start}')
+        self.next(self.clean_vector)
 
+    @step
     def clean_vector(self):
-        start = time()
         self.X = self.nlpUtils.clean_count_vector(self.X)
-        end = time()
-        print(f'clean_vector time: {end - start}')
+        self.next(self.normalize)
 
+    @step
     def normalize(self):
-        start = time()
         self.X = self.nlpUtils.normalize_count_vector(self.X)
-        end = time()
-        print(f'normalize time: {end - start}')
-        
+        self.next(self.build_model)
+
+    @step   
     def build_model(self):
         self.X_train, self.X_test, self.Y_train, self.Y_test = train_test_split(self.X, self.Y, test_size=0.2)
         self.model = MultiOutputClassifier(RandomForestClassifier())
         self.model.fit(self.X_train, self.Y_train)
-        self.modelUtils.evaluate_model(self.model, self.X_test, self.Y_test, self.category_names)
+        self.scores = self.modelUtils.evaluate_model(self.model, self.X_test, self.Y_test, self.category_names)
+        self.next(self.save_model)
 
+    @step
     def save_model(self):
         self.modelUtils.save_model(self.model, self.model_filepath)
+        self.next(self.end)
 
+    @step
+    def end(self):
+        pass
 
 
 if __name__ == '__main__':
-    modelFlow = ModelFlow()
-    modelFlow.start()
+    ModelFlow()

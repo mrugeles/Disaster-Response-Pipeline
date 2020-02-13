@@ -3,7 +3,7 @@ from sqlalchemy import create_engine
 
 class DataUtils():
 
-    def load_db_data(self, database_filepath):
+    def load_db_data(self, database_filepath, fraction):
         """ Creates the dataset from a database.
 
         Parameters
@@ -19,9 +19,8 @@ class DataUtils():
         category_names: list
             List of category names.
         """
-        print('sqlite:///'+database_filepath)
         engine = create_engine('sqlite:///'+database_filepath)
-        df = pd.read_sql('messages', engine)
+        df = pd.read_sql('messages', engine).sample(frac=fraction)
         X = df[['message']].values.flatten()
         y = df.drop(['id', 'message', 'original'], axis = 1)
         category_names = list(y.columns.values)

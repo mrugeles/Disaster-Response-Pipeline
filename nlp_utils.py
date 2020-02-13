@@ -83,8 +83,6 @@ class NLPUtils():
         vectorized = count_vect.transform(features)
         matrix = pd.DataFrame(vectorized.toarray(), columns=count_vect.get_feature_names())
 
-        print(f'TfidfTransformer features: {matrix.shape}')
-
         return matrix
 
 
@@ -106,7 +104,6 @@ class NLPUtils():
         start = time()
         columns_df = pd.DataFrame(list(matrix.columns), columns = ['feature'])
         columns_df['feature_spellcheck'] = columns_df['feature'].progress_apply(lambda word: self.spellcheck(word, 0.7))
-        print(f'feature_spellcheck time: {time() - start}')
 
         start = time()
         drop_columns = columns_df.loc[
@@ -115,26 +112,23 @@ class NLPUtils():
             (columns_df['feature_spellcheck'] == "nan")
         ]['feature'].values
         matrix = matrix.drop(drop_columns, axis = 1)
-        print(f'drop_columns time: {time() - start}')
-
 
         start = time()
         renamed_columns = dict(columns_df.loc[columns_df['feature_spellcheck'] != "-1"].to_dict('split')['data'])
         matrix = matrix.rename(columns = renamed_columns)
-        print(f'renamed_columns time: {time() - start}')
 
         matrix = self.drop_duplicated(matrix)
 
         matrix = matrix.reindex(sorted(matrix.columns), axis=1)
         
         model_features = pd.DataFrame(matrix.columns, columns = ['feature'])
-        model_features.to_csv('model_features.csv', index = False)
+        model_features.to_csv('models/model_features.csv', index = False)
         
         return csr_matrix(matrix.values)
 
     def normalize_count_vector(self, count_matrix):
         vectorizer = TfidfTransformer().fit(count_matrix)
-        pickle.dump(vectorizer, open('count_vectorizer.p', "wb"))
+        pickle.dump(vectorizer, open('models/tfidf-vector.p', "wb"))
         matrix = vectorizer.transform(count_matrix)
         return matrix
 
@@ -147,22 +141,12 @@ class NLPUtils():
     def vectorize_query(self, query):
         query = TextBlob(query).correct().string
         matrix_query = self.get_matrix([query])
-        print(f'matrix_query.shape: {matrix_query.shape}')
-        model_features = pd.read_csv('model_features.csv')
-        print(model_features.loc[model_features['feature'].isna()])
-        print(f'model_features.shape: {model_features.shape}')
+        model_features = pd.read_csv('models/model_features.csv')
         
         model_features = list(model_features['feature'].values)
 
-        print(len(model_features))
-        print(len(set(model_features)))
-        print(set(matrix_query.columns))
-
         add_features = list(set(model_features).difference(set(matrix_query.columns)))
         remove_features = list(set(matrix_query.columns).difference(set(model_features)))
-
-        print(f'add_features: {len(add_features)}')
-        print(f'remove_features: {len(remove_features)}')
 
         n_features = len(add_features)
         n_rows = matrix_query.shape[0]
@@ -173,6 +157,6 @@ class NLPUtils():
         matrix_query = matrix_query.reindex(sorted(matrix_query.columns), axis=1)
         
         matrix_query = csr_matrix(matrix_query.values)
-        vectorizer = pickle.load( open( 'count_vectorizer.p', "rb" ) )
+        vectorizer = pickle.load( open( 'models/tfidf-vector.p', "rb" ) )
         
         return vectorizer.transform(matrix_query)

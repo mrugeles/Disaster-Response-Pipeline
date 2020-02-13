@@ -64,7 +64,7 @@ class ModelUtils():
             score = f1_score(Y_test[category].values, y_pred[category].astype(int), average='weighted')
             scores[category] = [score]
         scores = pd.DataFrame.from_dict(scores, orient = 'index', columns = ['score'])
-        print(scores)
+        return scores
 
     def save_model(self,model, model_filepath):
         """Stores model
