@@ -24,15 +24,16 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 
 from scipy.sparse import csr_matrix
 
-nltk.download('punkt')
-nltk.download('stopwords')
-nltk.download('wordnet')
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 
 class NLPUtils():
 
-    english_corpus = set(words.words())
+    def __init__(self):
+        nltk.download('punkt')
+        nltk.download('stopwords')
+        nltk.download('wordnet')
+
 
     def tokenize(self, text):
         """Text tokenization
