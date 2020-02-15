@@ -1,4 +1,3 @@
-
 import re
 
 import pandas as pd
@@ -7,7 +6,6 @@ import pickle
 
 from time import time
 
-from tqdm import tqdm
 import logging
 
 import nltk
@@ -23,16 +21,21 @@ from textblob import Word
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 
 from scipy.sparse import csr_matrix
-
-nltk.download('punkt')
-nltk.download('stopwords')
-nltk.download('wordnet')
+from wordsegment import load, segment
+load()
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 
 class NLPUtils():
 
-    english_corpus = set(words.words())
+    def __init__(self):
+        print('Init NLPUtils')
+        nltk.download('punkt')
+        nltk.download('stopwords')
+        nltk.download('wordnet')
+        self.pattern = re.compile(r'(\#\w+)')
+        
+
 
     def tokenize(self, text):
         """Text tokenization
@@ -47,11 +50,18 @@ class NLPUtils():
         text: Tokenized text.
         """
         stopwords_list = stopwords.words("english")
-        stopwords_list += ['null']
+        stopwords_list += ['null', 'nan']
 
         text = text.lower()
+
+        hashtags = [hashtag.replace('#', '') for hashtag in re.findall(self.pattern, text)]
+        stopwords_list += hashtags
+        hashtags = ' '.join(hashtags)
+        hashtags = segment(hashtags)
+
         text = re.sub(r"[^a-z]", " ", text)
         word_list = word_tokenize(text)
+        word_list += hashtags
         word_list = [w for w in word_list if w not in stopwords_list]
         word_list = [WordNetLemmatizer().lemmatize(w, pos='v') for w in word_list]
         return word_list
@@ -89,7 +99,7 @@ class NLPUtils():
     def drop_duplicated(self, matrix):
         processed_columns = []    
 
-        for column in tqdm(matrix.columns[matrix.columns.duplicated()]):
+        for column in matrix.columns[matrix.columns.duplicated()]:
             if(column not in processed_columns):
                 column_indexes = np.where(matrix.columns.values == column)[0]
                 
@@ -103,7 +113,7 @@ class NLPUtils():
     def clean_count_vector(self, matrix):
         start = time()
         columns_df = pd.DataFrame(list(matrix.columns), columns = ['feature'])
-        columns_df['feature_spellcheck'] = columns_df['feature'].progress_apply(lambda word: self.spellcheck(word, 0.7))
+        columns_df['feature_spellcheck'] = columns_df['feature'].apply(lambda word: self.spellcheck(word, 0.7))
 
         start = time()
         drop_columns = columns_df.loc[
