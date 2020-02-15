@@ -10,11 +10,7 @@ from sklearn.pipeline import Pipeline
 
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 
-from nlp_utils import NLPUtils
-
 class ModelUtils():
-
-    nlpUtils = NLPUtils()
 
     def build_model(self):        
         """ Builds the pipeline and finds the best classification model with gridsearch.

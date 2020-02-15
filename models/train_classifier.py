@@ -4,8 +4,6 @@ from metaflow import FlowSpec, Parameter, step
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from time import time
 
-import nltk
-nltk.download('words')
 
 import pandas as pd
 import numpy as np
@@ -27,11 +25,10 @@ from nlp_utils import NLPUtils
 import warnings
 warnings.filterwarnings('ignore')
 
-tqdm.pandas(desc="feature_spellcheck")
 
 class ModelFlow(FlowSpec):
 
-    fraction = Parameter('fraction',
+    sample_size = Parameter('sample_size',
                     help='Dataset sample size',
                     type=float)
 
@@ -55,7 +52,7 @@ class ModelFlow(FlowSpec):
 
     @step
     def load_data(self):
-        self.X, self.Y, self.category_names = self.dataUtils.load_db_data(self.database_filepath, self.fraction)
+        self.X, self.Y, self.category_names = self.dataUtils.load_db_data(self.database_filepath, self.sample_size)
         self.next(self.vectorize)
 
 
