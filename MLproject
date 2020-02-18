@@ -1,0 +1,30 @@
+name: disaster_response_pipeline
+
+conda_env: conda.yaml
+
+entry_points:
+    process_data:
+        parameters:
+            disaster_messages:  data/disaster_messages.csv
+            disaster_categories: data/disaster_categories.csv
+            database_path: data/DisasterResponse.db
+        command: "python data/process_data.py --disaster_messages {disaster_messages} --disaster_categories {disaster_categories} --database {database}"        
+
+    etl_data:
+        parameters:
+            database_path: data/DisasterResponse.db
+            sample: {type:float, default: 1}
+            model_features: models/model_features.csv
+            data_vector: models/tfidf-vector.p
+            feature_matrix: models/feature_matrix.npz
+            target_dataset: data/target_dataset.csv
+        command: "python data/etl_data.py --database {database} --sample {sample} --model_features {model_features} --data_vector {data_vector} --feature_matrix {feature_matrix}"
+    
+    train_model:
+        parameters:
+            database_path: data/DisasterResponse.db
+            feature_matrix: models/feature_matrix.npz     
+            model_filepath: models/classifier.pkl
+            target_dataset: data/target_dataset.csv
+            test_size: {type:float, default: 0.2}
+        command: "python models/train_classifier.py --database {database} --feature_matrix {feature_matrix} --data_vector {data_vector} --model_filepath {models/classifier.pkl} --target_dataset {target_dataset} --test_size {test_size}"

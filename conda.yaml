@@ -1,0 +1,8 @@
+name: disaster_response_pipeline
+channels:
+  - defaults
+dependencies:
+  - python=3.7
+  - scipy
+  - sklearn
+  - click

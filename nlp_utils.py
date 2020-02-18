@@ -110,8 +110,7 @@ class NLPUtils():
         return matrix
 
 
-    def clean_count_vector(self, matrix):
-        start = time()
+    def clean_count_vector(self, matrix, model_features_path):
         columns_df = pd.DataFrame(list(matrix.columns), columns = ['feature'])
         columns_df['feature_spellcheck'] = columns_df['feature'].apply(lambda word: self.spellcheck(word, 0.7))
 
@@ -132,13 +131,13 @@ class NLPUtils():
         matrix = matrix.reindex(sorted(matrix.columns), axis=1)
         
         model_features = pd.DataFrame(matrix.columns, columns = ['feature'])
-        model_features.to_csv('models/model_features.csv', index = False)
+        model_features.to_csv(model_features_path, index = False)
         
         return csr_matrix(matrix.values)
 
-    def normalize_count_vector(self, count_matrix):
+    def normalize_count_vector(self, count_matrix, data_vector_path):
         vectorizer = TfidfTransformer().fit(count_matrix)
-        pickle.dump(vectorizer, open('models/tfidf-vector.p', "wb"))
+        pickle.dump(vectorizer, open(data_vector_path, "wb"))
         matrix = vectorizer.transform(count_matrix)
         return matrix
 

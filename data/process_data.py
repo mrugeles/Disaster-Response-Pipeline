@@ -2,6 +2,7 @@ import sys
 import pandas as pd
 import sys
 import os
+import click
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from data_utils import DataUtils
@@ -9,32 +10,22 @@ from data_utils import DataUtils
 
 dataUtils = DataUtils()
 
+@click.command(help="Run ETL pipeline that cleans data and stores in database")
+@click.option("--disaster_messages")
+@click.option("--disaster_categories")
+@click.option("--database_path")
+def process_data(disaster_messages, disaster_categories, database_path):
 
-def main():
-    if len(sys.argv) == 4:
+    df = dataUtils.load_data(disaster_messages, disaster_categories)
 
-        messages_filepath, categories_filepath, database_filepath = sys.argv[1:]
+    print('Cleaning data...')
+    df = dataUtils.clean_data(df)
 
-        print('Loading data...\n    MESSAGES: {}\n    CATEGORIES: {}'
-              .format(messages_filepath, categories_filepath))
-        df = dataUtils.load_data(messages_filepath, categories_filepath)
+    print('Saving data...\n    DATABASE: {}'.format(database_path))
+    dataUtils.save_db_data(df, database_path)
 
-        print('Cleaning data...')
-        df = dataUtils.clean_data(df)
-
-        print('Saving data...\n    DATABASE: {}'.format(database_filepath))
-        dataUtils.save_db_data(df, database_filepath)
-
-        print('Cleaned data saved to database!')
-
-    else:
-        print('Please provide the filepaths of the messages and categories '\
-              'datasets as the first and second argument respectively, as '\
-              'well as the filepath of the database to save the cleaned data '\
-              'to as the third argument. \n\nExample: python process_data.py '\
-              'disaster_messages.csv disaster_categories.csv '\
-              'DisasterResponse.db')
+    print('Cleaned data saved to database!')
 
 
 if __name__ == '__main__':
-    main()
+    process_data()
